@@ -18,12 +18,25 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'autocare_database.db');
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDb,
-    );
+    try {
+      String path = join(await getDatabasesPath(), 'autocare_database.db');
+      return await openDatabase(
+        path,
+        version: 1,
+        onCreate: _createDb,
+        onUpgrade: (db, oldVersion, newVersion) async {
+          // Handle future schema upgrades
+        },
+      );
+    } catch (e) {
+      print('Database initialization error: $e');
+      // Fallback to memory database for dev purposes
+      return await openDatabase(
+        ':memory:',
+        version: 1,
+        onCreate: _createDb,
+      );
+    }
   }
 
   Future<void> _createDb(Database db, int version) async {

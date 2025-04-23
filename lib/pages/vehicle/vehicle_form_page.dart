@@ -154,7 +154,7 @@ class VehicleFormPage extends StatelessWidget {
                       // Add the vehicle to the provider
                       vehicleProvider.addVehicle(
                         Vehicle(
-                          id: Random().nextInt(100000), // Simple ID generation
+                          id: DateTime.now().millisecondsSinceEpoch % 2147483647, // Simple ID generation
                           trimId: trim['id'] as int,
                           year: formProv.selectedYear.toString(),
                           make: formProv.selectedMake ?? '',

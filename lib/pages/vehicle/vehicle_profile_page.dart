@@ -27,12 +27,22 @@ class VehicleProfilePage extends StatelessWidget {
           )
         ],
       ),
-      body: vehicles.isEmpty
+      body: !vehicleProvider.isLoaded
+          ? const Center(child: CircularProgressIndicator())
+          : vehicles.isEmpty
           ? Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('No vehicles added yet'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Provider.of<NavigationProvider>(context, listen: false)
+                    .setPage(PageIdentifier.vehicleFormPage);
+              },
+              child: const Text('Add Vehicle'),
+            ),
           ],
         ),
       )
@@ -253,9 +263,13 @@ class VehicleCard extends StatelessWidget {
   }
 
   String _getEngineInfo(Map<String, dynamic> specs) {
-    // Since the specs structure is different, let's modify our approach
     try {
-      // Extract based on description if engine info is embedded there
+      // First try to get engine_type if available
+      if (specs.containsKey('engine_type') && specs['engine_type'] != null) {
+        return specs['engine_type'].toString();
+      }
+
+      // Then try description
       final description = specs['description'] as String?;
       if (description != null && description.contains('(') && description.contains(')')) {
         // Extract engine info from parentheses in description
@@ -272,16 +286,21 @@ class VehicleCard extends StatelessWidget {
     try {
       // Extract transmission info from description if possible
       final description = specs['description'] as String?;
-      if (description != null && description.contains('A')) {
+      if (description != null) {
         // If description contains something like "9A" for 9-speed automatic
         final match = RegExp(r'(\d+)A').firstMatch(description);
         if (match != null) {
           return '${match.group(1)}-speed Automatic';
         }
       }
+
+      // Try other fields
+      if (specs.containsKey('transmission') && specs['transmission'] != null) {
+        return specs['transmission'].toString();
+      }
     } catch (e) {
       // Handle any nested property access errors
     }
-    return 'Transmission Info N/A';
+    return 'Auto';  // More friendly default
   }
 }

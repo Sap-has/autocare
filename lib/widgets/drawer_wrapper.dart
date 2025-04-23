@@ -19,7 +19,7 @@ class DrawerWrapper extends StatelessWidget {
       case PageIdentifier.vehicleProfilePage:
         content = Consumer<VehicleProvider>(
           builder: (context, vehicleProvider, _) {
-            return VehicleProfilePage();
+            return const VehicleProfilePage();
           },
         );
         break;
@@ -35,7 +35,10 @@ class DrawerWrapper extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("AutoCare Pro")),
+      key: ValueKey(navigation.currentPage), // Add key to rebuild Scaffold properly
+      appBar: AppBar(
+        title: _getTitleForPage(navigation.currentPage),
+      ),
       drawer: Drawer(
         child: ListView(
           children: [
@@ -48,6 +51,7 @@ class DrawerWrapper extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.car_rental),
               title: const Text('Vehicle Profile'),
+              selected: navigation.currentPage == PageIdentifier.vehicleProfilePage,
               onTap: () {
                 navigation.setPage(PageIdentifier.vehicleProfilePage);
                 Navigator.pop(context);
@@ -56,6 +60,7 @@ class DrawerWrapper extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.recommend),
               title: const Text('Suggestions'),
+              selected: navigation.currentPage == PageIdentifier.suggestionPage,
               onTap: () {
                 navigation.setPage(PageIdentifier.suggestionPage);
                 Navigator.pop(context);
@@ -66,5 +71,17 @@ class DrawerWrapper extends StatelessWidget {
       ),
       body: content,
     );
+  }
+
+  // Helper method to get the title based on current page
+  Widget _getTitleForPage(PageIdentifier page) {
+    switch (page) {
+      case PageIdentifier.vehicleProfilePage:
+        return const Text("My Vehicles");
+      case PageIdentifier.vehicleFormPage:
+        return const Text("Add Vehicle");
+      case PageIdentifier.suggestionPage:
+        return const Text("Maintenance Suggestions");
+    }
   }
 }

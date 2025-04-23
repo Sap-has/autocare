@@ -65,26 +65,30 @@ class MileageRecord {
 class VehicleProvider extends ChangeNotifier {
   final List<Vehicle> _vehicles = [];
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  bool _isLoaded = false;
+  bool isLoaded = false;
 
   List<Vehicle> get vehicles => _vehicles;
 
   // Constructor loads data from database
   VehicleProvider() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadVehicles();
-    });
+    // Initialize loading immediately but don't block UI
+    _loadVehicles();
   }
 
   // Load vehicles from the database
   Future<void> _loadVehicles() async {
-    if (_isLoaded) return;
+    if (isLoaded) return;
 
-    final vehicles = await _dbHelper.getVehicles();
-    _vehicles.clear();
-    _vehicles.addAll(vehicles);
-    _isLoaded = true;
-    notifyListeners();
+    try {
+      final vehicles = await _dbHelper.getVehicles();
+      _vehicles.clear();
+      _vehicles.addAll(vehicles);
+      isLoaded = true;
+      notifyListeners();
+    } catch (e) {
+      // Handle database errors
+      print('Error loading vehicles: $e');
+    }
   }
 
   Future<void> addVehicle(Vehicle vehicle) async {
