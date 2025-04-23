@@ -71,7 +71,9 @@ class VehicleProvider extends ChangeNotifier {
 
   // Constructor loads data from database
   VehicleProvider() {
-    _loadVehicles();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadVehicles();
+    });
   }
 
   // Load vehicles from the database

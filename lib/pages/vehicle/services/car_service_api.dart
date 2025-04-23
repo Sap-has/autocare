@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -42,7 +43,7 @@ class CarApiService {
     }
 
     // 1. Decode JSON
-    final decoded = json.decode(res.body);
+    final decoded = await compute(jsonDecode, res.body);
 
     // 2. Grab the actual payload (some APIs wrap in "data", some don’t)
     final Map<String, dynamic> payload =

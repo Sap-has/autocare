@@ -5,7 +5,9 @@ import 'pages/vehicle/providers/vehicle_provider.dart';
 import 'widgets/drawer_wrapper.dart';
 import 'database/database_helper.dart';
 
-Future<void> main() async {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final dbHelper = DatabaseHelper();
   await dbHelper.database;
 
