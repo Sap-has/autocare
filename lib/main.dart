@@ -5,33 +5,9 @@ import 'pages/vehicle/providers/vehicle_provider.dart';
 import 'widgets/drawer_wrapper.dart';
 import 'database/database_helper.dart';
 
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-
 Future<void> main() async {
-  // Ensure Flutter is initialized
-  WidgetsFlutterBinding.ensureInitialized();
-  final darwinSettings = DarwinInitializationSettings(
-    requestAlertPermission: true,
-    requestBadgePermission:  true,
-    requestSoundPermission:  true,
-  );
-
-  final initSettings = InitializationSettings(
-    android: androidSettings,
-    iOS:    darwinSettings,
-    macOS:  darwinSettings,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(
-    initSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) {
-      // handle notification tapped logic here
-    },
-  );
-  // Initialize the database
   final dbHelper = DatabaseHelper();
-  await dbHelper.database; // This ensures the database is created
+  await dbHelper.database;
 
   runApp(const MyApp());
 }

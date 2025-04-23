@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 
 class Suggestion {
   final String title;
@@ -12,7 +9,7 @@ class Suggestion {
 }
 
 class SuggestionPage extends StatefulWidget {
-  const SuggestionPage({Key? key}) : super(key: key);
+  const SuggestionPage({super.key});
 
   @override
   _SuggestionPageState createState() => _SuggestionPageState();
@@ -29,36 +26,11 @@ class _SuggestionPageState extends State<SuggestionPage> {
   ];
 
   late List<Suggestion> _suggestions;
-  final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
     super.initState();
     _suggestions = _defaultTitles.map((title) => Suggestion(title: title)).toList();
-    _initNotifications();
-  }
-
-  Future<void> _initNotifications() async {
-    tz.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation(DateTime.now().timeZoneName));
-
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-
-    final initSettings = InitializationSettings(
-      android: androidInit,
-      iOS: iosInit,
-    );
-
-    await _notifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {},
-      onDidReceiveBackgroundNotificationResponse: (NotificationResponse response) async {},
-    );
   }
 
   @override
@@ -125,24 +97,6 @@ class _SuggestionPageState extends State<SuggestionPage> {
       date.day,
       time.hour,
       time.minute,
-    );
-
-    await _notifications.zonedSchedule(
-      id,
-      'Maintenance Reminder',
-      'Time for ${item.title}',
-      tz.TZDateTime.from(scheduledDate, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'maintenance_channel',
-          'Maintenance Reminders',
-          channelDescription: 'Car maintenance reminders',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
 
     setState(() => item.reminder = scheduledDate);
