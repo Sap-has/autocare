@@ -1,117 +1,89 @@
+// lib/pages/suggestions/suggestion_page.dart
 import 'package:flutter/material.dart';
-
-class Suggestion {
-  final String title;
-  bool completed;
-  DateTime? reminder;
-
-  Suggestion({required this.title, this.completed = false, this.reminder});
-}
+import 'package:provider/provider.dart';
+import 'providers/suggestion_provider.dart';
+import '../vehicle/providers/vehicle_provider.dart';
+import '../../util/date_extension.dart';
 
 class SuggestionPage extends StatefulWidget {
   const SuggestionPage({super.key});
-
   @override
   _SuggestionPageState createState() => _SuggestionPageState();
 }
 
 class _SuggestionPageState extends State<SuggestionPage> {
-  static const List<String> _defaultTitles = [
-    'Oil Change',
-    'Tire Rotation',
-    'Brake Inspection',
-    'Engine Air Filter Replacement',
-    'Transmission Fluid Check',
-    'Battery Test',
-  ];
-
-  late List<Suggestion> _suggestions;
+  late VehicleProvider _vp;
+  late SuggestionProvider _sp;
+  int? _selectedVehicleId;
 
   @override
-  void initState() {
-    super.initState();
-    _suggestions = _defaultTitles.map((title) => Suggestion(title: title)).toList();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _vp = Provider.of<VehicleProvider>(context);
+    _sp = Provider.of<SuggestionProvider>(context, listen: false);
+    if (_vp.vehicles.isNotEmpty && _selectedVehicleId == null) {
+      _selectedVehicleId = _vp.vehicles.first.id;
+      _load();
+    }
+  }
+
+  void _load() {
+    final v = _vp.getVehicleById(_selectedVehicleId!);
+    if (v != null) _sp.loadForVehicle(v);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Maintenance Suggestions'),
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _suggestions.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final item = _suggestions[index];
-          return Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ListTile(
-              leading: IconButton(
-                icon: Icon(
-                  item.completed ? Icons.check_box : Icons.check_box_outline_blank,
-                ),
-                onPressed: () {
-                  setState(() => item.completed = !item.completed);
-                },
-              ),
-              title: Text(
-                item.title,
-                style: TextStyle(
-                  decoration: item.completed ? TextDecoration.lineThrough : null,
-                ),
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.alarm),
-                onPressed: () => _scheduleReminder(context, item, index),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _scheduleReminder(BuildContext context, Suggestion item, int id) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (date == null) return;
-
-    final time = await showTimePicker(
-      context: context,
-      initialTime: const TimeOfDay(hour: 9, minute: 0),
-    );
-    if (time == null) return;
-
-    final scheduledDate = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-
-    setState(() => item.reminder = scheduledDate);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Reminder set for "${item.title}" on ${_formatDateTime(scheduledDate)}',
+    return Column(
+      children: [
+        // Vehicle dropdown
+        DropdownButton<int>(
+          value: _selectedVehicleId,
+          items: _vp.vehicles.map((v) =>
+              DropdownMenuItem(value: v.id, child: Text('${v.year} ${v.make} ${v.model}'))
+          ).toList(),
+          onChanged: (id) {
+            setState(() => _selectedVehicleId = id);
+            _load();
+          },
         ),
-      ),
-    );
-  }
 
-  String _formatDateTime(DateTime dt) {
-    return '${dt.month}/${dt.day}/${dt.year} '
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        // Content
+        Expanded(child: Consumer<SuggestionProvider>(
+          builder: (_, sp, __) {
+            if (sp.loading) return Center(child: CircularProgressIndicator());
+            return ListView(
+              children: [
+                // Maintenance suggestions
+                ...sp.suggestions.map((s) => ListTile(
+                  title: Text(s.title),
+                  subtitle: Text(s.description +
+                      (s.recommendedMileage != null
+                          ? ' @ ${s.recommendedMileage} mi'
+                          : s.recommendedDate != null
+                          ? ' on ${s.recommendedDate!.toLocal().toShortDateString()}'
+                          : ''
+                      )
+                  ),
+                  trailing: Checkbox(
+                    value: s.completed,
+                    onChanged: (_) => sp.toggleComplete(s),
+                  ),
+                )),
+
+                Divider(),
+
+                // Recalls & issues
+                Padding(padding: EdgeInsets.all(8), child: Text('Recalls / Known Issues')),
+                ...sp.recalls.map((r) => ListTile(
+                  title: Text(r['Summary'] ?? 'No title'),
+                  subtitle: Text(r['Conequence'] ?? ''),
+                )),
+              ],
+            );
+          },
+        )),
+      ],
+    );
   }
 }

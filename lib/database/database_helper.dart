@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../pages/vehicle/providers/vehicle_provider.dart';
+import '../pages/suggestions/models/suggestion_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -61,6 +62,20 @@ class DatabaseHelper {
         date TEXT NOT NULL,
         odometer INTEGER NOT NULL,
         notes TEXT,
+        FOREIGN KEY (vehicleId) REFERENCES vehicles(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE suggestions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicleId INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        recommendedMileage INTEGER,
+        recommendedDate TEXT,
+        completed INTEGER NOT NULL DEFAULT 0,
+        completionDate TEXT,
         FOREIGN KEY (vehicleId) REFERENCES vehicles(id) ON DELETE CASCADE
       )
     ''');
@@ -149,6 +164,38 @@ class DatabaseHelper {
       odometer: recordMap['odometer'],
       notes: recordMap['notes'],
     )).toList();
+  }
+
+  Future<int> insertSuggestion(Suggestion s) async {
+    final db = await database;
+    return await db.insert(
+      'suggestions',
+      s.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Fetch all suggestions for a given vehicle.
+  Future<List<Suggestion>> getSuggestionsForVehicle(int vehicleId) async {
+    final db = await database;
+    final maps = await db.query(
+      'suggestions',
+      where: 'vehicleId = ?',
+      whereArgs: [vehicleId],
+      orderBy: 'recommendedDate ASC, recommendedMileage ASC',
+    );
+    return maps.map((m) => Suggestion.fromMap(m)).toList();
+  }
+
+  /// Update an existing suggestion (e.g. mark completed).
+  Future<int> updateSuggestion(Suggestion s) async {
+    final db = await database;
+    return await db.update(
+      'suggestions',
+      s.toMap(),
+      where: 'id = ?',
+      whereArgs: [s.id],
+    );
   }
 
   // Helper methods for converting between JSON and Map
