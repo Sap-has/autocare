@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum PageIdentifier {vehicleFormPage, vehicleProfilePage, suggestionPage}
+enum PageIdentifier {vehicleFormPage, vehicleProfilePage, suggestionPage, servicePage}
 
 class NavigationProvider extends ChangeNotifier{
   PageIdentifier _currentPage = PageIdentifier.vehicleProfilePage;

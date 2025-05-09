@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../database/database_helper.dart';
+import '../../../database/firestore_helper.dart';
 
 class Vehicle {
   final int id;
@@ -63,74 +63,48 @@ class MileageRecord {
 }
 
 class VehicleProvider extends ChangeNotifier {
-  final List<Vehicle> _vehicles = [];
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  final FirestoreHelper _fs = FirestoreHelper();
+  List<Vehicle> vehicles = [];
+  final Map<int, List<MileageRecord>> _records = {};
+
   bool isLoaded = false;
 
-  List<Vehicle> get vehicles => _vehicles;
-
-  // Constructor loads data from database
   VehicleProvider() {
-    // Initialize loading immediately but don't block UI
-    _loadVehicles();
-  }
-
-  // Load vehicles from the database
-  Future<void> _loadVehicles() async {
-    if (isLoaded) return;
-
-    try {
-      final vehicles = await _dbHelper.getVehicles();
-      _vehicles.clear();
-      _vehicles.addAll(vehicles);
+    // Listen for vehicles
+    _fs.watchVehicles().listen((list) {
+      vehicles = list;
       isLoaded = true;
       notifyListeners();
-    } catch (e) {
-      // Handle database errors
-      print('Error loading vehicles: $e');
-    }
+      // For each vehicle, start listening to its records:
+      for (var v in vehicles) {
+        if (!_records.containsKey(v.id)) {
+          _fs.watchMileageRecords(v.id).listen((recs) {
+            _records[v.id] = recs;
+            notifyListeners();
+          });
+        }
+      }
+    });
   }
 
-  Future<void> addVehicle(Vehicle vehicle) async {
-    // Add to database first
-    await _dbHelper.insertVehicle(vehicle, vehicle.specs);
-
-    // Then add to in-memory list
-    _vehicles.add(vehicle);
-    notifyListeners();
+  Future<void> addVehicle(Vehicle v) {
+    return _fs.insertVehicle(v);
   }
 
-  Future<void> removeVehicle(int id) async {
-    // Remove from database
-    await _dbHelper.deleteVehicle(id);
-
-    // Remove from in-memory list
-    _vehicles.removeWhere((vehicle) => vehicle.id == id);
-    notifyListeners();
+  Future<void> deleteVehicle(int vehicleId) {
+    return _fs.deleteVehicle(vehicleId);
   }
 
-  // New method to add a mileage record to a vehicle
-  Future<void> addMileageRecord(int vehicleId, MileageRecord record) async {
-    // Add to database
-    await _dbHelper.insertMileageRecord(vehicleId, record);
-
-    // Update in-memory list
-    final index = _vehicles.indexWhere((v) => v.id == vehicleId);
-    if (index >= 0) {
-      final vehicle = _vehicles[index];
-      final updatedRecords = List<MileageRecord>.from(vehicle.mileageRecords)..add(record);
-
-      // Replace the vehicle with an updated copy
-      _vehicles[index] = vehicle.copyWith(mileageRecords: updatedRecords);
-      notifyListeners();
-    }
+  Future<void> addMileageRecord(int vehicleId, MileageRecord r) {
+    return _fs.insertMileageRecord(vehicleId, r);
   }
 
   Vehicle? getVehicleById(int id) {
-    try {
-      return _vehicles.firstWhere((v) => v.id == id);
-    } catch (e) {
-      return null;
-    }
+    final idx = vehicles.indexWhere((v) => v.id == id);
+    if (idx == -1) return null;                      // no vehicle found
+    final vehicle = vehicles[idx];
+    final recs    = _records[id] ?? [];
+    return vehicle.copyWith(mileageRecords: recs);
   }
+
 }

@@ -3,15 +3,16 @@ import 'package:provider/provider.dart';
 import 'providers/navigation_provider.dart';
 import 'pages/vehicle/providers/vehicle_provider.dart';
 import 'widgets/drawer_wrapper.dart';
-import 'database/database_helper.dart';
-import 'pages/suggestions/providers/suggestion_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final dbHelper = DatabaseHelper();
-  await dbHelper.database;
-
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -27,8 +28,6 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<VehicleProvider>(
           create: (_) => VehicleProvider(),
-        ),
-        ChangeNotifierProvider(create: (_) => SuggestionProvider(),
         ),
       ],
       child: MaterialApp(

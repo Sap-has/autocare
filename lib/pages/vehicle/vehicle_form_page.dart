@@ -3,10 +3,18 @@ import 'package:provider/provider.dart';
 import '../vehicle/providers/vehicle_form_provider.dart';
 import '../vehicle/providers/vehicle_provider.dart';
 import '../../providers/navigation_provider.dart';
-import 'dart:math';
 
-class VehicleFormPage extends StatelessWidget {
-  const VehicleFormPage({super.key});
+class VehicleFormPage extends StatefulWidget {
+  const VehicleFormPage({Key? key}) : super(key: key);
+
+  @override
+  State<VehicleFormPage> createState() => _VehicleFormPageState();
+}
+
+class _VehicleFormPageState extends State<VehicleFormPage> {
+  bool _isLoadingMakes = false;
+  bool _isLoadingModels = false;
+  bool _isLoadingTrims = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,75 +32,71 @@ class VehicleFormPage extends StatelessWidget {
               value: formProv.selectedYear,
               decoration: const InputDecoration(labelText: 'Year'),
               items: formProv.years
-                  .map((y) => DropdownMenuItem(
-                value: y,
-                child: Text(y.toString()),
-              ))
+                  .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
                   .toList(),
               onChanged: (year) {
-                if (year != null) formProv.selectYear(year);
+                if (year != null) _onYearSelected(year);
               },
+              disabledHint: _isLoadingMakes
+                  ? const Center(child: CircularProgressIndicator())
+                  : null,
             ),
 
-            // Make dropdown (after year)
+            // Make dropdown
             if (formProv.selectedYear != null) ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: formProv.selectedMake,
                 decoration: const InputDecoration(labelText: 'Make'),
                 items: formProv.makes
-                    .map((m) => DropdownMenuItem(
-                  value: m,
-                  child: Text(m),
-                ))
+                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
                     .toList(),
-                onChanged: (make) {
-                  if (make != null) formProv.selectMake(make);
+                onChanged: _isLoadingMakes
+                    ? null
+                    : (make) {
+                  if (make != null) _onMakeSelected(make);
                 },
               ),
             ],
 
-            // Model dropdown (after make)
+            // Model dropdown
             if (formProv.selectedMake != null) ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: formProv.selectedModel,
                 decoration: const InputDecoration(labelText: 'Model'),
                 items: formProv.models
-                    .map((m) => DropdownMenuItem(
-                  value: m,
-                  child: Text(m),
-                ))
+                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
                     .toList(),
-                onChanged: (model) {
-                  if (model != null) formProv.selectModel(model);
+                onChanged: _isLoadingModels
+                    ? null
+                    : (model) {
+                  if (model != null) _onModelSelected(model);
                 },
               ),
             ],
 
-            // Trim dropdown (after model)
+            // Trim dropdown
             if (formProv.selectedModel != null) ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: formProv.selectedTrim,
                 decoration: const InputDecoration(labelText: 'Trim'),
                 items: formProv.trims
-                    .map((t) => DropdownMenuItem(
-                  value: t,
-                  child: Text(t),
-                ))
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                     .toList(),
-                onChanged: (trim) {
-                  if (trim != null) formProv.selectTrim(trim);
+                onChanged: _isLoadingTrims
+                    ? null
+                    : (trim) {
+                  if (trim != null) _onTrimSelected(trim);
                 },
               ),
             ],
 
             const Spacer(),
 
-            // Button to pick the exact trim from trimsRaw list
             ElevatedButton(
-              onPressed: (formProv.selectedTrim != null && formProv.trimsRaw.isNotEmpty)
+              onPressed: (formProv.selectedTrim != null && !_isLoadingTrims)
                   ? () => _showTrimPicker(context, formProv)
                   : null,
               child: const Text('Select Exact Trim'),
@@ -103,10 +107,54 @@ class VehicleFormPage extends StatelessWidget {
     );
   }
 
+  Future<void> _onYearSelected(int year) async {
+    setState(() {
+      _isLoadingMakes = true;
+      _isLoadingModels = false;
+      _isLoadingTrims = false;
+    });
+    await context.read<VehicleFormProvider>().selectYear(year);
+    setState(() {
+      _isLoadingMakes = false;
+    });
+  }
+
+  Future<void> _onMakeSelected(String make) async {
+    setState(() {
+      _isLoadingModels = true;
+      _isLoadingTrims = false;
+    });
+    await context.read<VehicleFormProvider>().selectMake(make);
+    setState(() {
+      _isLoadingModels = false;
+    });
+  }
+
+  Future<void> _onModelSelected(String model) async {
+    setState(() {
+      _isLoadingTrims = true;
+    });
+    await context.read<VehicleFormProvider>().selectModel(model);
+    setState(() {
+      _isLoadingTrims = false;
+    });
+  }
+
+  Future<void> _onTrimSelected(String trim) async {
+    setState(() {
+      _isLoadingTrims = true;
+    });
+    context.read<VehicleFormProvider>().selectTrim(trim);
+    setState(() {
+      _isLoadingTrims = false;
+    });
+  }
+
   void _showTrimPicker(BuildContext context, VehicleFormProvider formProv) {
-    // Filter trims to only show those that match the selected trim name
     final filteredTrims = formProv.selectedTrim != null
-        ? formProv.trimsRaw.where((trim) => trim['name'] == formProv.selectedTrim).toList()
+        ? formProv.trimsRaw
+        .where((t) => t['name'] == formProv.selectedTrim)
+        .toList()
         : formProv.trimsRaw;
 
     showModalBottomSheet(
@@ -115,9 +163,9 @@ class VehicleFormPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Text(
-              'Available ${formProv.selectedTrim ?? ""} Trims',
+              'Available ${formProv.selectedTrim} Trims',
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
@@ -129,14 +177,12 @@ class VehicleFormPage extends StatelessWidget {
               itemBuilder: (ctx, i) {
                 final trim = filteredTrims[i];
                 return ListTile(
-                  title: Text(trim['name']),
+                  title: Text(trim['name'].toString()),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Show some distinguishing characteristics
                       if (trim['description'] != null)
-                        Text(trim['description']),
-                      // You can show additional info if available
+                        Text(trim['description'].toString()),
                       if (trim['engine'] != null)
                         Text('Engine: ${trim['engine']}'),
                       if (trim['transmission'] != null)
@@ -145,27 +191,25 @@ class VehicleFormPage extends StatelessWidget {
                   ),
                   onTap: () async {
                     Navigator.pop(ctx);
+                    final vehicleProv = context.read<VehicleProvider>();
+                    final navigationProv = context.read<NavigationProvider>();
                     await formProv.loadSpecsFor(trim['id'] as int);
-                    if (formProv.fullSpecs != null && context.mounted) {
-                      // Get providers
-                      final vehicleProvider = Provider.of<VehicleProvider>(context, listen: false);
-                      final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
-
-                      // Add the vehicle to the provider
-                      vehicleProvider.addVehicle(
+                    if (formProv.fullSpecs != null) {
+                      vehicleProv.addVehicle(
                         Vehicle(
-                          id: DateTime.now().millisecondsSinceEpoch % 2147483647, // Simple ID generation
+                          id: DateTime.now()
+                              .millisecondsSinceEpoch
+                              .remainder(1 << 31),
                           trimId: trim['id'] as int,
                           year: formProv.selectedYear.toString(),
                           make: formProv.selectedMake ?? '',
                           model: formProv.selectedModel ?? '',
-                          trim: trim['name'] as String,
+                          trim: trim['name'].toString(),
                           specs: formProv.fullSpecs!,
                         ),
                       );
-
-                      // Navigate back to vehicle profile page
-                      navigationProvider.setPage(PageIdentifier.vehicleProfilePage);
+                      navigationProv
+                          .setPage(PageIdentifier.vehicleProfilePage);
                     }
                   },
                 );

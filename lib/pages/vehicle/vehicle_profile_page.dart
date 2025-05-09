@@ -176,8 +176,43 @@ class VehicleCard extends StatelessWidget {
                     foregroundColor: Colors.white,
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  tooltip: "Delete Vehicle",
+                  onPressed: () => _confirmDelete(context),
+                  color: Colors.redAccent,
+                ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Vehicle'),
+        content: Text(
+          'Are you sure you want to delete ${vehicle.year} ${vehicle.make} ${vehicle.model}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await Provider.of<VehicleProvider>(context, listen: false)
+                  .deleteVehicle(vehicle.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Vehicle deleted')),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

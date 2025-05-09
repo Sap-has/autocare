@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../pages/suggestions/suggestion_page.dart';
 import '../pages/vehicle/vehicle_form_page.dart';
 import '../providers/navigation_provider.dart';
 import '../pages/vehicle/vehicle_profile_page.dart';
 import '../pages/vehicle/providers/vehicle_form_provider.dart';
 import '../pages/vehicle/providers/vehicle_provider.dart';
+import '../pages/suggestion/suggestion_page.dart';
+import '../pages/services/service_records_page.dart';
 
 class DrawerWrapper extends StatelessWidget {
   const DrawerWrapper({super.key});
@@ -30,7 +31,10 @@ class DrawerWrapper extends StatelessWidget {
         );
         break;
       case PageIdentifier.suggestionPage:
-        content = const SuggestionPage();
+        content = SuggestionPage();
+        break;
+      case PageIdentifier.servicePage:
+        content = const ServiceRecordsPage();
         break;
     }
 
@@ -58,11 +62,20 @@ class DrawerWrapper extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.recommend),
-              title: const Text('Suggestions'),
+              leading: const Icon(Icons.safety_check),
+              title: const Text('Suggestion'),
               selected: navigation.currentPage == PageIdentifier.suggestionPage,
               onTap: () {
                 navigation.setPage(PageIdentifier.suggestionPage);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text('Service'),
+              selected: navigation.currentPage == PageIdentifier.servicePage,
+              onTap: () {
+                navigation.setPage(PageIdentifier.servicePage);
                 Navigator.pop(context);
               },
             ),
@@ -82,6 +95,8 @@ class DrawerWrapper extends StatelessWidget {
         return const Text("Add Vehicle");
       case PageIdentifier.suggestionPage:
         return const Text("Maintenance Suggestions");
+      case PageIdentifier.servicePage:
+        return const Text("Service History");
     }
   }
 }

@@ -1,0 +1,14 @@
+{
+  "Jeep|Cherokee|2015": [
+    {
+      "service": "Tire Rotation",
+      "intervalMiles": 6000,
+      "description": "Rotate tires every 6,000 miles"
+    },
+    {
+      "service": "Brake Inspection",
+      "intervalMiles": 12000,
+      "description": "Inspect brake pads and rotors every 12,000 miles"
+    }
+  ]
+}
